@@ -1,0 +1,260 @@
+{
+  "name": "agente de ia donatê",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um assistente educacional chamado DONATÊ. Responda à seguinte pergunta do estudante:\n\n{{ $json.query }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -144,
+        96
+      ],
+      "id": "f2a6c6e0-d196-4e70-959e-c736a58fda30",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        400
+      ],
+      "id": "ebee09dd-5078-45fa-b3cd-2da2037b20f4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GKLTZ6kiRyE6QW5R",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "responda sempre o usuário, sempre que ele fazer perguntas sobre temas diversos e sobre a escola",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -32,
+        400
+      ],
+      "id": "d6446ab8-19f0-4c1e-a540-0d6c9df63986",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "Mfi5rSKR58yA6oKC",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        608
+      ],
+      "id": "7365309f-9760-4f75-8e64-f6ddc0f9c34a",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GKLTZ6kiRyE6QW5R",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/webhook/donate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -576,
+        112
+      ],
+      "id": "bcf42fd8-5591-458e-a194-c17731a64c5d",
+      "name": "Webhook",
+      "webhookId": "8f73d278-7765-4cef-8954-05618c9e23a4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair pergunta do webhook\nconst body = $input.item.json.body || $input.item.json;\nconst pergunta = body.pergunta || body.query;\n\n// Gerar ou usar um sessionId\nconst sessionId = body.sessionId || 'user-default-session';\n\nif (!pergunta) {\n  throw new Error('Nenhuma pergunta foi enviada');\n}\n\nreturn {\n  json: {\n    query: pergunta,\n    sessionId: sessionId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        112
+      ],
+      "id": "2991dbf8-c10b-4cec-9912-a40f30a152a2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        192,
+        96
+      ],
+      "id": "c16d0b5d-3068-4c98-8877-b84b73e2d1ae",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -176,
+        384
+      ],
+      "id": "4b789bcc-2bc7-48af-a5f5-2ed52dc58bd3",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "ZmW1KgHwkWohdbDR",
+          "name": "Agente de ia Rag"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "timeSavedPerExecution": 1
+  },
+  "versionId": "dd75f42b-c240-4b18-bc02-b133df131170",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fed69dfaea7b85c6c54e5c637144c95f47ff703c774b4ae0d4acdc2916c77b1"
+  },
+  "id": "CHgJ4gvnzRqmfuFq",
+  "tags": []
+}
